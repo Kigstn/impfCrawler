@@ -25,6 +25,15 @@ def update_config(config: dict) -> dict:
     return config
 
 
+def currently_night(start: datetime.time, end: datetime.time, x: datetime.time):
+    """Return true if x is in the range [start, end]"""
+
+    if start <= end:
+        return start <= x <= end
+    else:
+        return start <= x or x <= end
+
+
 if __name__ == '__main__':
     # create config file or get the existing one
     try:
@@ -55,6 +64,10 @@ if __name__ == '__main__':
         'birthdate': config["birth_date"],
     }
 
+    # get night timeranges
+    night_start = datetime.time(23, 0, 0)
+    night_end = datetime.time(7, 0, 0)
+
     # loop and make a request every minute
     while True:
         response = requests.get(url, params=params, headers=headers)
@@ -62,7 +75,8 @@ if __name__ == '__main__':
 
         # log that
         logger.debug(response)
-        print(f"Checked at {str(datetime.datetime.now())}")
+        now = datetime.datetime.now()
+        print(f"Checked at {str(now)}")
 
         # check if there is free spots
         if response.status_code == 200 and response_json:
@@ -70,17 +84,18 @@ if __name__ == '__main__':
                 found_one = False
                 for centre in response_json["resultList"]:
                     if not centre["outOfStock"]:
-                        text = f"Es sind Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`"
-                        telegram.send(text)
-                        found_one = True
-
                         # log that
                         logger.info(response_json)
-                        print(text)
 
-                # wait 4 hours to not spam
-                if found_one:
-                    time.sleep(4*60*60)
+                        # send the message via telegram
+                        text = f"Es sind `{centre['freeSlotSizeOnline']}` Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`\nDie ersten Termine sind ab `{str(datetime.datetime.fromtimestamp(centre['firstAppoinmentDateSorterOnline']/1e3))}`"
+                        telegram.send(text)
+                        print(text)
+                        found_one = True
+
+                # if it's the middle of the night, wait 2 hours to not spam
+                if found_one and currently_night(night_start, night_end, now.time()):
+                    time.sleep(2*60*60)
 
         # wait two minutes
         time.sleep(2*60)
