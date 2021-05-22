@@ -10,7 +10,6 @@ class Telegram:
 
         self.headers = {
             'Accept': 'application/json',
-            'User-Agent': 'https://github.com/alfonsrv/impf-botpy'
         }
 
         # init logging

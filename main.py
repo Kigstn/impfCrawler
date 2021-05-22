@@ -69,9 +69,11 @@ if __name__ == '__main__':
             if response_json["resultList"]:
                 for centre in response_json["resultList"]:
                     if not centre["outOfStock"]:
-                        telegram.send(f"Es sind Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`")
+                        text = f"Es sind Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`"
+                        telegram.send(text)
                         # log that
                         logger.info(response_json)
+                        print(text)
 
             # wait 4 hours to not spam
             time.sleep(4*60*60)
