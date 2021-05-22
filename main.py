@@ -113,7 +113,11 @@ if __name__ == '__main__':
             }
 
             response = requests.get(url, params=params, headers=headers)
-            response_json = response.json()
+            try:
+                response_json = response.json()
+            except json.decoder.JSONDecodeError:
+                time.sleep(2*60)
+                continue
 
             # log that
             logger.debug(response)
