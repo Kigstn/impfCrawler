@@ -62,17 +62,19 @@ if __name__ == '__main__':
 
         # log that
         logger.debug(response)
+        print(f"Checked at {str(datetime.datetime.now())}")
 
         # check if there is free spots
-        if response_json["resultList"]:
-            for centre in response_json["resultList"]:
-                if not centre["outOfStock"]:
-                    telegram.send(f"Es sind Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`")
-                    # log that
-                    logger.info(response_json)
+        if response.status_code == 200 and response_json:
+            if response_json["resultList"]:
+                for centre in response_json["resultList"]:
+                    if not centre["outOfStock"]:
+                        telegram.send(f"Es sind Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`")
+                        # log that
+                        logger.info(response_json)
 
             # wait 4 hours to not spam
             time.sleep(4*60*60)
 
-        # wait a minute
-        time.sleep(60)
+        # wait two minutes
+        time.sleep(2*60)
