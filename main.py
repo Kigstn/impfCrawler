@@ -67,16 +67,20 @@ if __name__ == '__main__':
         # check if there is free spots
         if response.status_code == 200 and response_json:
             if response_json["resultList"]:
+                found_one = False
                 for centre in response_json["resultList"]:
                     if not centre["outOfStock"]:
                         text = f"Es sind Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`"
                         telegram.send(text)
+                        found_one = True
+
                         # log that
                         logger.info(response_json)
                         print(text)
 
-            # wait 4 hours to not spam
-            time.sleep(4*60*60)
+                # wait 4 hours to not spam
+                if found_one:
+                    time.sleep(4*60*60)
 
         # wait two minutes
         time.sleep(2*60)
