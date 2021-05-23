@@ -22,7 +22,7 @@ def add_user(users: dict) -> dict:
     # telegram data
     user_data = {"chat_id": input("Enter your telegram chat id")}
 
-    zip_code = int(input("Enter your zip code"))
+    zip_code = input("Enter your zip code")
     try:
         users[zip_code].append(user_data)
     except KeyError:
