@@ -3,6 +3,7 @@ import datetime
 import time
 import requests
 import argparse
+import copy
 
 from logs import make_logger
 from telegram import Telegram
@@ -20,13 +21,34 @@ def add_user(users: dict) -> dict:
     """ Info for every user who wants to get notified. zip code is the key for this dict to prevent too many requests"""
 
     # telegram data
-    user_data = {"chat_id": input("Enter your telegram chat id")}
+    user_data = {
+        "chat_id": input("Enter your telegram chat id"),
+        "name": input("Enter your name").lower(),
+    }
 
     zip_code = input("Enter your zip code")
     try:
         users[zip_code].append(user_data)
     except KeyError:
         users[zip_code] = [user_data]
+
+    return users
+
+
+def remove_user(users: dict) -> dict:
+    """ Remove a user by name from all notifications """
+
+    name = input("What is the name of the user you want to remove").lower()
+
+    users_copy = copy.deepcopy(users)
+    for zip_code, zip_code_users in users_copy.items():
+        for user in zip_code_users:
+            if user["name"] == name:
+                users[zip_code].remove(user)
+
+        # also remove zip code if no users are left
+        if not users[zip_code]:
+            users.pop(zip_code)
 
     return users
 
@@ -42,7 +64,9 @@ def currently_night(start: datetime.time, end: datetime.time, x: datetime.time):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--add_user', action='store_true', help='Add a new user')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--add_user', action='store_true', help='Add a new user')
+    group.add_argument('--remove_user', action='store_true', help='Add a new user')
 
     args = parser.parse_args()
 
@@ -67,7 +91,16 @@ if __name__ == '__main__':
 
         # save new users
         with open("users.json", 'w+') as file:
-            json.dump(users, file)
+            json.dump(users, file, indent=4)
+
+    # if asked for, add a new user
+    elif args.remove_user:
+        # remove user by name
+        users = remove_user(users)
+
+        # save new users
+        with open("users.json", 'w+') as file:
+            json.dump(users, file, indent=4)
 
     # check if there are users
     assert users, "I found no users, please add some by using the argument --add_user"
@@ -77,7 +110,7 @@ if __name__ == '__main__':
 
     # save new config
     with open("config.json", 'w+') as file:
-        json.dump(config, file)
+        json.dump(config, file, indent=4)
 
     # get logger
     logger = make_logger("main")
@@ -121,7 +154,7 @@ if __name__ == '__main__':
 
             # log that
             logger.debug(response)
-            print(f"Checked at {str(now)}")
+            print(f"Checked zip code {zip_code} at {str(now)}")
 
             # check if there is free spots
             if response.status_code == 200 and response_json:
