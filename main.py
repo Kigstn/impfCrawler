@@ -102,76 +102,77 @@ if __name__ == '__main__':
         with open("users.json", 'w+') as file:
             json.dump(users, file, indent=4)
 
-    # check if there are users
-    assert users, "I found no users, please add some by using the argument --add_user"
+    else:
+        # check if there are users
+        assert users, "I found no users, please add some by using the argument --add_user"
 
-    # check for missing entries
-    config = update_config(config)
+        # check for missing entries
+        config = update_config(config)
 
-    # save new config
-    with open("config.json", 'w+') as file:
-        json.dump(config, file, indent=4)
+        # save new config
+        with open("config.json", 'w+') as file:
+            json.dump(config, file, indent=4)
 
-    # get logger
-    logger = make_logger("main")
+        # get logger
+        logger = make_logger("main")
 
-    # get telegram obj
-    telegram = Telegram(config["bot_token"])
+        # get telegram obj
+        telegram = Telegram(config["bot_token"])
 
-    # get data for the web requests
-    headers = {
-        'Accept': 'application/json'
-    }
+        # get data for the web requests
+        headers = {
+            'Accept': 'application/json'
+        }
 
-    # get night timeranges
-    night_start = datetime.time(23, 0, 0)
-    night_end = datetime.time(7, 0, 0)
-    birth_date = int(datetime.datetime.strptime("01/01/00", "%d/%m/%y").timestamp() * 1e3)
+        # get night timeranges
+        night_start = datetime.time(23, 0, 0)
+        night_end = datetime.time(7, 0, 0)
+        birth_date = int(datetime.datetime.strptime("01/01/00", "%d/%m/%y").timestamp() * 1e3)
 
-    # loop and make a request every minute
-    while True:
-        now = datetime.datetime.now()
+        # loop and make a request every minute
+        while True:
+            now = datetime.datetime.now()
 
-        # only check when it's day
-        if currently_night(night_start, night_end, now.time()):
-            time.sleep(2 * 60 * 60)
-            continue
-
-        for zip_code, zip_code_users in users.items():
-            # zip code specific web request data
-            url = f"https://www.impfportal-niedersachsen.de/portal/rest/appointments/findVaccinationCenterListFree/{zip_code}"
-
-            params = {
-                'birthdate': birth_date,
-            }
-
-            response = requests.get(url, params=params, headers=headers)
-            try:
-                response_json = response.json()
-            except json.decoder.JSONDecodeError:
-                time.sleep(2*60)
+            # only check when it's day
+            if currently_night(night_start, night_end, now.time()):
+                time.sleep(2 * 60 * 60)
                 continue
 
-            # log that
-            logger.debug(response)
-            print(f"Checked zip code {zip_code} at {str(now)}")
+            for zip_code, zip_code_users in users.items():
+                # zip code specific web request data
+                url = f"https://www.impfportal-niedersachsen.de/portal/rest/appointments/findVaccinationCenterListFree/{zip_code}"
 
-            # check if there is free spots
-            if response.status_code == 200 and response_json:
-                if response_json["resultList"]:
-                    for centre in response_json["resultList"]:
-                        if not centre["outOfStock"]:
-                            # log that
-                            logger.info(response_json)
+                params = {
+                    'birthdate': birth_date,
+                }
 
-                            text = f"Es sind `{centre['freeSlotSizeOnline']}` Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`\nDie ersten Termine sind ab `{str(datetime.datetime.fromtimestamp(centre['firstAppoinmentDateSorterOnline'] / 1e3))}`"
-                            print(text)
+                response = requests.get(url, params=params, headers=headers)
+                try:
+                    response_json = response.json()
+                except json.decoder.JSONDecodeError:
+                    time.sleep(2*60)
+                    continue
 
-                            # loop through the users
-                            for user in zip_code_users:
-                                # send the message via telegram
-                                telegram.send(user["chat_id"], text)
-                                logger.info(f"Send message to {user['name']}")
+                # log that
+                logger.debug(response)
+                print(f"Checked zip code {zip_code} at {str(now)}")
 
-        # wait two minutes
-        time.sleep(2*60)
+                # check if there is free spots
+                if response.status_code == 200 and response_json:
+                    if response_json["resultList"]:
+                        for centre in response_json["resultList"]:
+                            if not centre["outOfStock"]:
+                                # log that
+                                logger.info(response_json)
+
+                                text = f"Es sind `{centre['freeSlotSizeOnline']}` Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`\nDie ersten Termine sind ab `{str(datetime.datetime.fromtimestamp(centre['firstAppoinmentDateSorterOnline'] / 1e3))}`"
+                                print(text)
+
+                                # loop through the users
+                                for user in zip_code_users:
+                                    # send the message via telegram
+                                    telegram.send(user["chat_id"], text)
+                                    logger.info(f"Send message to {user['name']}")
+
+            # wait two minutes
+            time.sleep(2*60)
