@@ -165,14 +165,19 @@ if __name__ == '__main__':
                                 # log that
                                 logger.info(response_json)
 
-                                text = f"Es sind `{centre['freeSlotSizeOnline']}` Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`\nDie ersten Termine sind ab `{str(datetime.datetime.fromtimestamp(centre['firstAppoinmentDateSorterOnline'] / 1e3))}`"
+                                try:
+                                    text = f"Es sind `{centre['freeSlotSizeOnline']}` Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`\nDie ersten Termine sind ab `{str(datetime.datetime.fromtimestamp(centre['firstAppoinmentDateSorterOnline'] / 1e3))}`"
+                                except:
+                                    text = f"Es sind Plätze im Impfzentrum `{centre['name']}` frei!\nGeimpft wird mit `{centre['vaccineName']}`"
                                 print(text)
 
                                 # loop through the users
                                 for user in zip_code_users:
                                     # send the message via telegram
                                     telegram.send(user["chat_id"], text)
-                                    logger.info(f"Send message to {user['name']}")
+                                    send_text = f"Send message to {user['name']}"
+                                    logger.info(send_text)
+                                    print(send_text)
 
             # wait two minutes
             time.sleep(2*60)
