@@ -14,6 +14,10 @@ def update_config(config: dict) -> dict:
     if "bot_token" not in config:
         config["bot_token"] = input("Enter your telegram bot token")
 
+    # heartbeat chat id
+    if "heartbeat_chat_id" not in config:
+        config["heartbeat_chat_id"] = input("Enter your heartbeat telegram chat id")
+
     return config
 
 
@@ -127,7 +131,11 @@ if __name__ == '__main__':
         # get night timeranges
         night_start = datetime.time(23, 0, 0)
         night_end = datetime.time(7, 0, 0)
-        birth_date = int(datetime.datetime.strptime("01/01/00", "%d/%m/%y").timestamp() * 1e3)
+        birth_date = int(datetime.datetime(1997, 6, 11).timestamp() * 1e3)
+
+        # prepare heartbeat - every 12h
+        start = datetime.datetime.now()
+        heartbeat_cd = datetime.timedelta(hours=12)
 
         # loop and make a request every minute
         while True:
@@ -143,6 +151,7 @@ if __name__ == '__main__':
                 url = f"https://www.impfportal-niedersachsen.de/portal/rest/appointments/findVaccinationCenterListFree/{zip_code}"
 
                 params = {
+                    'count': 1,
                     'birthdate': birth_date,
                 }
 
@@ -150,6 +159,7 @@ if __name__ == '__main__':
                 try:
                     response_json = response.json()
                 except json.decoder.JSONDecodeError:
+                    print("Failed to decode json")
                     time.sleep(2*60)
                     continue
 
@@ -179,5 +189,10 @@ if __name__ == '__main__':
                                     logger.info(send_text)
                                     print(send_text)
 
-            # wait two minutes
-            time.sleep(2*60)
+            # send heartbeat
+            if start + heartbeat_cd < now:
+                start = datetime.datetime.now()
+                telegram.send(config["heartbeat_chat_id"], "I'm still standing!")
+
+            # wait one minutes
+            time.sleep(1*60)
